@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatroom</title>
+    <style>
+        :root {
+            --bg-top: #0f2a43;
+            --bg-bottom: #184e77;
+            --panel: #f7fbff;
+            --panel-edge: #d3e1ef;
+            --text-strong: #102a43;
+            --text-soft: #486581;
+            --accent: #2f855a;
+            --accent-press: #276749;
+            --bubble-self: #d9fbe8;
+            --bubble-other: #ffffff;
+            --bubble-bot: #fff7db;
+            --danger: #b42318;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #2e6da4 0%, var(--bg-top) 45%, var(--bg-bottom) 100%);
+            color: var(--text-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .shell {
+            width: min(960px, 100%);
+            height: min(92vh, 860px);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 255, 0.95));
+            border: 1px solid rgba(210, 227, 242, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 24px 55px rgba(9, 30, 66, 0.28);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--panel-edge);
+            background: rgba(232, 244, 255, 0.8);
+        }
+
+        .title {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: 0.4px;
+        }
+
+        .status {
+            margin-top: 4px;
+            font-size: 0.86rem;
+            color: var(--text-soft);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .nickname-btn {
+            border: 1px solid #bad3e8;
+            background: #ffffff;
+            color: #1f3b58;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .nickname-btn:hover {
+            background: #edf5fb;
+        }
+
+        .messages {
+            overflow-y: auto;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background:
+                linear-gradient(135deg, rgba(236, 246, 255, 0.7), rgba(255, 255, 255, 0.7)),
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(224, 237, 250, 0.4) 0,
+                    rgba(224, 237, 250, 0.4) 1px,
+                    transparent 1px,
+                    transparent 28px
+                );
+        }
+
+        .message {
+            align-self: flex-start;
+            max-width: min(78ch, 82%);
+            background: var(--bubble-other);
+            border: 1px solid #d9e9f7;
+            border-radius: 14px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 16px rgba(18, 53, 87, 0.08);
+        }
+
+        .message.mine {
+            align-self: flex-end;
+            background: var(--bubble-self);
+            border-color: #93e5ba;
+        }
+
+        .message.bot {
+            background: var(--bubble-bot);
+            border-color: #f7d379;
+        }
+
+        .meta {
+            font-size: 0.79rem;
+            font-weight: 700;
+            color: #1f3b58;
+            margin-bottom: 4px;
+        }
+
+        .body {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.4;
+            color: #17324d;
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: #4f6f8f;
+            max-width: 380px;
+            line-height: 1.45;
+        }
+
+        .composer {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 10px;
+            padding: 14px;
+            border-top: 1px solid var(--panel-edge);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .composer input {
+            width: 100%;
+            border: 1px solid #b9d2e8;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+            color: #1a3652;
+        }
+
+        .composer input:focus {
+            border-color: #2f6ea6;
+            box-shadow: 0 0 0 4px rgba(47, 110, 166, 0.15);
+        }
+
+        .composer button {
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            padding: 0 18px;
+            cursor: pointer;
+        }
+
+        .composer button.image-btn {
+            background: #2f6ea6;
+        }
+
+        .composer button.image-btn:hover {
+            background: #245686;
+        }
+
+        .composer button.audio-btn {
+            background: #b25518;
+        }
+
+        .composer button.audio-btn:hover {
+            background: #8f4314;
+        }
+
+        .composer button:hover {
+            background: var(--accent-press);
+        }
+
+        .composer button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .message-image {
+            display: block;
+            width: min(340px, 100%);
+            max-height: 360px;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 1px solid #c5dbee;
+            margin-top: 4px;
+            background: rgba(247, 251, 255, 0.7);
+        }
+
+        .message-audio {
+            display: block;
+            width: min(360px, 100%);
+        }
+
+        .message-audio-card {
+            margin-top: 4px;
+            width: min(380px, 100%);
+            border: 1px solid #c5dbee;
+            border-radius: 10px;
+            padding: 8px;
+            background: rgba(247, 251, 255, 0.72);
+        }
+
+        .audio-stats {
+            margin: 8px 0 0;
+            font-size: 0.82rem;
+            color: #365675;
+            line-height: 1.35;
+        }
+
+        .image-stats {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: #365675;
+            line-height: 1.35;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 22, 38, 0.62);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .dialog {
+            width: min(420px, 100%);
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #d7e8f6;
+            padding: 20px;
+            box-shadow: 0 20px 45px rgba(10, 30, 49, 0.35);
+        }
+
+        .dialog h2 {
+            margin: 0 0 8px;
+            color: #17324d;
+        }
+
+        .dialog p {
+            margin: 0 0 14px;
+            color: #4f6f8f;
+            line-height: 1.4;
+            font-size: 0.94rem;
+        }
+
+        .dialog form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .dialog input {
+            border: 1px solid #bdd5e9;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 1rem;
+        }
+
+        .dialog button {
+            border: none;
+            border-radius: 10px;
+            background: #2f6ea6;
+            color: #fff;
+            font-weight: 700;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .dialog small {
+            color: #5d7f9f;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 0;
+            }
+
+            .shell {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                border: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="shell">
+        <header class="topbar">
+            <div>
+                <h1 class="title">Chatroom</h1>
+                <div id="status" class="status">Connecting...</div>
+                <div class="status">use <code>/ai help</code> for AI rules.</div>
+            </div>
+            <button id="changeNickname" class="nickname-btn" type="button">Set nickname</button>
+        </header>
+
+        <main id="messages" class="messages">
+            <div class="empty-state">
+                Messages will appear here once someone sends one.
+            </div>
+        </main>
+
+        <form id="composer" class="composer">
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Type a message..."
+                maxlength="500"
+                autocomplete="off"
+                required
+            >
+            <input
+                id="imageInput"
+                class="file-input"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+            >
+            <input
+                id="audioInput"
+                class="file-input"
+                type="file"
+                accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg"
+            >
+            <button id="imageButton" class="image-btn" type="button">Image</button>
+            <button id="audioButton" class="audio-btn" type="button">Audio</button>
+            <button id="sendButton" type="submit">Send</button>
+        </form>
+    </section>
+
+    <div id="nicknameModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="nicknameTitle">
+        <div class="dialog">
+            <h2 id="nicknameTitle">Choose your nickname</h2>
+            <p>Your nickname is stored on this device. You can change it anytime.</p>
+            <form id="nicknameForm">
+                <input id="nicknameInput" type="text" maxlength="24" autocomplete="off" placeholder="e.g. Priya">
+                <button type="submit">Enter chat</button>
+                <small>1-24 characters. Spaces are allowed.</small>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById("status");
+        const messagesEl = document.getElementById("messages");
+        const composerEl = document.getElementById("composer");
+        const messageInputEl = document.getElementById("messageInput");
+        const imageInputEl = document.getElementById("imageInput");
+        const audioInputEl = document.getElementById("audioInput");
+        const imageButtonEl = document.getElementById("imageButton");
+        const audioButtonEl = document.getElementById("audioButton");
+        const sendButtonEl = document.getElementById("sendButton");
+        const changeNicknameEl = document.getElementById("changeNickname");
+        const nicknameModalEl = document.getElementById("nicknameModal");
+        const nicknameFormEl = document.getElementById("nicknameForm");
+        const nicknameInputEl = document.getElementById("nicknameInput");
+
+        const MAX_NICKNAME_LEN = 24;
+        const MAX_MESSAGE_LEN = 500;
+        const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+        const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+        const ALLOWED_IMAGE_TYPES = new Set([
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp"
+        ]);
+        const ALLOWED_AUDIO_TYPES = new Set([
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/wav",
+            "audio/x-wav",
+            "audio/ogg",
+            "application/ogg"
+        ]);
+        const renderedIds = new Set();
+        let botName = "LocalAI";
+        let nickname = "";
+        let lastMessageId = 0;
+        let polling = false;
+
+        function cleanText(value, maxLen) {
+            return value.replace(/\s+/g, " ").trim().slice(0, maxLen);
+        }
+
+        function isRenderableImageMessage(message) {
+            return (
+                message &&
+                message.type === "image" &&
+                typeof message.imageData === "string" &&
+                message.imageData.startsWith("data:image/")
+            );
+        }
+
+        function isRenderableAudioMessage(message) {
+            return (
+                message &&
+                message.type === "audio" &&
+                typeof message.audioPath === "string" &&
+                message.audioPath.startsWith("/uploads/")
+            );
+        }
+
+        function isAllowedAudioFile(file) {
+            const extension = "." + (file.name.split(".").pop() || "").toLowerCase();
+            const extensionAllowed = [".mp3", ".wav", ".ogg"].includes(extension);
+            const normalizedType = String(file.type || "").toLowerCase();
+            const typeAllowed = !normalizedType || ALLOWED_AUDIO_TYPES.has(normalizedType);
+            return extensionAllowed && typeAllowed;
+        }
+
+        function guessAudioMimeFromPath(path) {
+            const lowerPath = String(path || "").toLowerCase();
+            if (lowerPath.endsWith(".mp3")) {
+                return "audio/mpeg";
+            }
+            if (lowerPath.endsWith(".wav")) {
+                return "audio/wav";
+            }
+            if (lowerPath.endsWith(".ogg")) {
+                return "audio/ogg";
+            }
+            return "audio/mpeg";
+        }
+
+        function formatBytes(bytes) {
+            if (!Number.isFinite(bytes) || bytes < 0) {
+                return "Unknown";
+            }
+
+            if (bytes < 1024) {
+                return `${bytes} B`;
+            }
+
+            if (bytes < 1024 * 1024) {
+                return `${(bytes / 1024).toFixed(1)} KB`;
+            }
+
+            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        function formatDuration(seconds) {
+            if (!Number.isFinite(seconds) || seconds < 0) {
+                return "Unknown";
+            }
+
+            const total = Math.floor(seconds);
+            const mins = Math.floor(total / 60);
+            const secs = total % 60;
+            return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        }
+
+        function setComposerDisabled(disabled) {
+            sendButtonEl.disabled = disabled;
+            imageButtonEl.disabled = disabled;
+            audioButtonEl.disabled = disabled;
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    if (typeof reader.result === "string") {
+                        resolve(reader.result);
+                    } else {
+                        reject(new Error("Unable to read image file."));
+                    }
+                };
+                reader.onerror = () => reject(new Error("Unable to read image file."));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setStatus(message, isError = false) {
+            statusEl.textContent = message;
+            statusEl.classList.toggle("error", isError);
+        }
+
+        function openNicknameDialog() {
+            nicknameModalEl.classList.add("open");
+            nicknameInputEl.value = nickname;
+            setTimeout(() => nicknameInputEl.focus(), 0);
+        }
+
+        function closeNicknameDialog() {
+            nicknameModalEl.classList.remove("open");
+        }
+
+        function updateNicknameButton() {
+            changeNicknameEl.textContent = nickname ? `Nickname: ${nickname}` : "Set nickname";
+        }
+
+        function appendMessage(message) {
+            if (renderedIds.has(message.id)) {
+                return;
+            }
+
+            renderedIds.add(message.id);
+            lastMessageId = Math.max(lastMessageId, message.id);
+
+            const emptyState = messagesEl.querySelector(".empty-state");
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const article = document.createElement("article");
+            article.className = "message";
+            if (nickname && message.nickname === nickname) {
+                article.classList.add("mine");
+            }
+            if (message.nickname === botName) {
+                article.classList.add("bot");
+            }
+
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            meta.textContent = message.nickname;
+
+            article.append(meta);
+
+            if (isRenderableImageMessage(message)) {
+                const image = document.createElement("img");
+                image.className = "message-image";
+                image.src = message.imageData;
+                image.alt = `${message.nickname} shared an image`;
+                image.loading = "lazy";
+                article.append(image);
+
+                if (message.imageStats) {
+                    const stats = document.createElement("p");
+                    stats.className = "image-stats";
+                    const originalKb = (message.imageStats.originalBytes / 1024).toFixed(2);
+                    const processedKb = (message.imageStats.processedBytes / 1024).toFixed(2);
+                    stats.textContent = `Original: ${originalKb} Kb | Processed: ${processedKb} Kb | Compressed: ${message.imageStats.reductionPercent}%`;
+                    article.append(stats);
+                }
+
+                if (message.message) {
+                    const caption = document.createElement("p");
+                    caption.className = "body";
+                    caption.textContent = message.message;
+                    article.append(caption);
+                }
+            } else if (isRenderableAudioMessage(message)) {
+                const audioCard = document.createElement("div");
+                audioCard.className = "message-audio-card";
+
+                const audio = document.createElement("audio");
+                audio.className = "message-audio";
+                audio.controls = true;
+
+                const source = document.createElement("source");
+                source.src = message.audioPath;
+                source.type = guessAudioMimeFromPath(message.audioPath);
+                audio.append(source);
+                audioCard.append(audio);
+
+                const audioStats = document.createElement("p");
+                audioStats.className = "audio-stats";
+                const audioSizeValue =
+                    Number.isFinite(message.audioSize) ? message.audioSize : Number.NaN;
+                const sizeText = formatBytes(audioSizeValue);
+                audioStats.textContent = `Size: ${sizeText} | Length: Loading...`;
+                audioCard.append(audioStats);
+
+                function updateAudioLengthText() {
+                    const durationText = formatDuration(audio.duration);
+                    audioStats.textContent = `Size: ${sizeText} | Length: ${durationText}`;
+                }
+
+                audio.addEventListener("loadedmetadata", updateAudioLengthText);
+                audio.addEventListener("durationchange", updateAudioLengthText);
+                audio.addEventListener("error", () => {
+                    audioStats.textContent = `Size: ${sizeText} | Length: Unavailable`;
+                });
+
+                article.append(audioCard);
+
+                if (message.message) {
+                    const caption = document.createElement("p");
+                    caption.className = "body";
+                    caption.textContent = message.message;
+                    article.append(caption);
+                }
+            } else {
+                const body = document.createElement("p");
+                body.className = "body";
+                body.textContent = message.message;
+                article.append(body);
+            }
+
+            messagesEl.appendChild(article);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        async function fetchMessages(initial = false) {
+            if (polling) {
+                return;
+            }
+            polling = true;
+
+            try {
+                const after = initial ? 0 : lastMessageId;
+                const response = await fetch(`/api/messages?after=${after}&limit=80`, {
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch messages");
+                }
+
+                const data = await response.json();
+                for (const message of data.messages || []) {
+                    appendMessage(message);
+                }
+
+                setStatus("Connected");
+            } catch (error) {
+                setStatus("Connection problem. Retrying...", true);
+            } finally {
+                polling = false;
+            }
+        }
+
+        async function sendMessage(payload) {
+            const response = await fetch("/api/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    nickname,
+                    ...payload
+                })
+            });
+
+            if (!response.ok) {
+                let detail = "Unable to send message.";
+                try {
+                    const data = await response.json();
+                    if (data.error) {
+                        detail = data.error;
+                    }
+                } catch (_error) {
+                    // Keep fallback detail.
+                }
+                throw new Error(detail);
+            }
+
+            const saved = await response.json();
+            appendMessage(saved);
+            setStatus("Connected");
+        }
+
+        async function sendAudioMessage(file, caption) {
+            const formData = new FormData();
+            formData.append("nickname", nickname);
+            formData.append("type", "audio");
+            formData.append("message", caption);
+            formData.append("audioFile", file);
+
+            const response = await fetch("/api/messages", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                let detail = "Unable to upload audio.";
+                try {
+                    const data = await response.json();
+                    if (data.error) {
+                        detail = data.error;
+                    }
+                } catch (_error) {
+                    // Keep fallback detail.
+                }
+                throw new Error(detail);
+            }
+
+            const saved = await response.json();
+            appendMessage(saved);
+            setStatus("Connected");
+        }
+
+        async function fetchAIInfo() {
+            try {
+                const response = await fetch("/api/ai", { cache: "no-store" });
+                if (!response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                if (data.botName) {
+                    botName = data.botName;
+                }
+            } catch (_error) {
+                // AI info is optional for UI rendering.
+            }
+        }
+
+        changeNicknameEl.addEventListener("click", () => {
+            openNicknameDialog();
+        });
+
+        nicknameFormEl.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const nextName = cleanText(nicknameInputEl.value, MAX_NICKNAME_LEN);
+            if (!nextName) {
+                nicknameInputEl.focus();
+                return;
+            }
+
+            nickname = nextName;
+            localStorage.setItem("chat_nickname", nickname);
+            updateNicknameButton();
+            closeNicknameDialog();
+            messageInputEl.focus();
+        });
+
+        imageButtonEl.addEventListener("click", () => {
+            if (!nickname) {
+                openNicknameDialog();
+                return;
+            }
+            imageInputEl.click();
+        });
+
+        audioButtonEl.addEventListener("click", () => {
+            if (!nickname) {
+                openNicknameDialog();
+                return;
+            }
+            audioInputEl.click();
+        });
+
+        imageInputEl.addEventListener("change", async () => {
+            const file = imageInputEl.files && imageInputEl.files[0];
+            imageInputEl.value = "";
+
+            if (!file) {
+                return;
+            }
+
+            if (!nickname) {
+                openNicknameDialog();
+                return;
+            }
+
+            if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+                setStatus("Please select a JPG, PNG, GIF, or WebP image.", true);
+                return;
+            }
+
+            if (file.size > MAX_IMAGE_BYTES) {
+                setStatus("Image is too large. Max size is 2 MB.", true);
+                return;
+            }
+
+            const caption = cleanText(messageInputEl.value, MAX_MESSAGE_LEN);
+            setComposerDisabled(true);
+            try {
+                const imageData = await readFileAsDataUrl(file);
+                await sendMessage({
+                    type: "image",
+                    message: caption,
+                    imageData
+                });
+                messageInputEl.value = "";
+                messageInputEl.focus();
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                setComposerDisabled(false);
+            }
+        });
+
+        audioInputEl.addEventListener("change", async () => {
+            const file = audioInputEl.files && audioInputEl.files[0];
+            audioInputEl.value = "";
+
+            if (!file) {
+                return;
+            }
+
+            if (!nickname) {
+                openNicknameDialog();
+                return;
+            }
+
+            if (!isAllowedAudioFile(file)) {
+                setStatus("Please select an MP3, WAV, or OGG audio file.", true);
+                return;
+            }
+
+            if (file.size > MAX_AUDIO_BYTES) {
+                setStatus("Audio is too large. Max size is 10 MB.", true);
+                return;
+            }
+
+            const caption = cleanText(messageInputEl.value, MAX_MESSAGE_LEN);
+            setComposerDisabled(true);
+            try {
+                await sendAudioMessage(file, caption);
+                messageInputEl.value = "";
+                messageInputEl.focus();
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                setComposerDisabled(false);
+            }
+        });
+
+        composerEl.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!nickname) {
+                openNicknameDialog();
+                return;
+            }
+
+            const text = cleanText(messageInputEl.value, MAX_MESSAGE_LEN);
+            if (!text) {
+                return;
+            }
+
+            setComposerDisabled(true);
+            try {
+                await sendMessage({
+                    type: "text",
+                    message: text
+                });
+                messageInputEl.value = "";
+                messageInputEl.focus();
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                setComposerDisabled(false);
+            }
+        });
+
+        function boot() {
+            nickname = cleanText(localStorage.getItem("chat_nickname") || "", MAX_NICKNAME_LEN);
+            updateNicknameButton();
+            if (!nickname) {
+                openNicknameDialog();
+            }
+
+            fetchAIInfo();
+            fetchMessages(true);
+            setInterval(() => fetchMessages(false), 1200);
+        }
+
+        boot();
+    </script>
+</body>
+</html>
